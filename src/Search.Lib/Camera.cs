@@ -9,7 +9,7 @@ namespace Search.Lib
         public string Name { get; }
         public (float lat, float lng) Location { get; }
 
-        static readonly Regex RawNameParseRegex = new Regex(@"$UTR-CM-(\d{3}) (\w+)$", RegexOptions.Compiled);
+        static readonly Regex RawNameParseRegex = new Regex(@"^UTR-CM-(\d{3})\b", RegexOptions.Compiled);
 
         public Camera(int number, string name, (float lat, float lng) location)
         {
@@ -31,8 +31,7 @@ namespace Search.Lib
             if (!rawNameMatch.Success)
                 throw new ArgumentException("argument not a valid camera name. Name must fit UTR-CM-<id> <name>", nameof(rawName));
 
-            var rawNumber = rawNameMatch.Captures[1].Value;
-            var name = rawNameMatch.Captures[2].Value;
+            var rawNumber = rawNameMatch.Groups[1].Value;
 
             if (!int.TryParse(rawNumber, out var number))
                 throw new ArgumentException("argument not a valid camera name. Name must fit UTR-CM-<id> <name>.", nameof(rawName));
@@ -42,7 +41,7 @@ namespace Search.Lib
             if (!float.TryParse(rawLongitude, out var longitude))
                 throw new ArgumentException("argument not a valid number.", nameof(rawLongitude));
 
-            return new Camera(number, name, (latitude, longitude));
+            return new Camera(number, rawName, (latitude, longitude));
         }
     }
 }

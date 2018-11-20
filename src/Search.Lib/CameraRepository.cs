@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using CsvHelper;
+using CsvHelper.Configuration;
 
 namespace Search.Lib
 {
@@ -53,6 +57,46 @@ namespace Search.Lib
         {
             var compareInfo = CultureInfo.InvariantCulture.CompareInfo;
             return cameras.Where(camera => compareInfo.IndexOf(camera.Name, partialName, CompareOptions.IgnoreCase) >= 0);
+        }
+
+        public static async Task<CameraRepository> FromCsv(string fileName)
+        {
+            var csv = new CsvReader(new StreamReader(File.OpenRead(fileName)), new Configuration
+            {
+                Delimiter = ";"
+            });
+
+            if (!await csv.ReadAsync())
+            {
+                throw new Exception("No CSV header found. Is the file empty?");
+            }
+            csv.ReadHeader();
+
+            var repository = new CameraRepository();
+            var index = 0;
+            while (await csv.ReadAsync())
+            {
+                try
+                {
+                    var camera = Camera.Parse(csv["Camera"], csv["Latitude"], csv["Longitude"]);
+                    repository.Add(camera);
+                }
+                catch (ArgumentException e) when (e.ParamName != "camera")
+                {
+                    await Console.Error.WriteLineAsync($"Malformed camera record encountered at index {index}");
+                }
+                catch (ArgumentException e) when (e.ParamName == "camera")
+                {
+                    await Console.Error.WriteLineAsync($"Duplicate camera record encountered at index {index}");
+                }
+                catch (CsvHelper.MissingFieldException)
+                {
+                    await Console.Error.WriteLineAsync($"Malformed camera record encountered at index {index}");
+                }
+                index++;
+            }
+
+            return repository;
         }
     }
 }
