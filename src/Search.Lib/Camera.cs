@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Search.Lib
@@ -36,9 +37,9 @@ namespace Search.Lib
             if (!int.TryParse(rawNumber, out var number))
                 throw new ArgumentException("argument not a valid camera name. Name must fit UTR-CM-<id> <name>.", nameof(rawName));
 
-            if (!float.TryParse(rawLatitude, out var latitude))
+            if (!float.TryParse(rawLatitude, NumberStyles.Any, CultureInfo.InvariantCulture, out var latitude))
                 throw new ArgumentException("argument not a valid number.", nameof(rawLatitude));
-            if (!float.TryParse(rawLongitude, out var longitude))
+            if (!float.TryParse(rawLongitude, NumberStyles.Any, CultureInfo.InvariantCulture, out var longitude))
                 throw new ArgumentException("argument not a valid number.", nameof(rawLongitude));
 
             return new Camera(number, rawName, (latitude, longitude));
