@@ -4,20 +4,35 @@
    // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
    "version": "0.2.0",
    "configurations": [
-        {
-            "name": ".NET Core Launch (console)",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/Search/bin/Debug/netcoreapp2.2/Search.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/src/Search",
-            // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
-            "console": "internalConsole",
-            "stopAtEntry": false,
-            "internalConsoleOptions": "openOnSessionStart"
-        },
+       
+    {
+        "name": ".NET Core Launch (console)",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build-console",
+        // If you have changed target frameworks, make sure to update the program path.
+        "program": "${workspaceFolder}/src/Search/bin/Debug/netcoreapp2.1/Search.dll",
+        "args": ["--name", "Neude"],
+        "cwd": "${workspaceFolder}/src/Search",
+        // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+        "console": "internalConsole",
+        "stopAtEntry": false,
+        "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
+        "name": ".NET Core Launch (server)",
+        "type": "coreclr",
+        "request": "launch",
+        "preLaunchTask": "build-server",
+        // If you have changed target frameworks, make sure to update the program path.
+        "program": "${workspaceFolder}/src/Search.Api/bin/Debug/netcoreapp2.1/Search.Api.dll",
+        "args": [],
+        "cwd": "${workspaceFolder}/src/Search.Api",
+        // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+        "console": "internalConsole",
+        "stopAtEntry": false,
+        "internalConsoleOptions": "openOnSessionStart"
+    },
         {
             "name": ".NET Core Attach",
             "type": "coreclr",

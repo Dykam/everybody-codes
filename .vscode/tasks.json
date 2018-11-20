@@ -2,12 +2,22 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "build-console",
             "command": "dotnet",
             "type": "process",
             "args": [
                 "build",
                 "${workspaceFolder}/src/Search/Search.csproj"
+            ],
+            "problemMatcher": "$msCompile"
+        }
+        {
+            "label": "build-server",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/Search.Api/Search.Api.csproj"
             ],
             "problemMatcher": "$msCompile"
         }
