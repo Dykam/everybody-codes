@@ -1,17 +1,21 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Nito.AsyncEx;
 
 namespace Search.Lib
 {
-    public class CameraRepository
+    public class CameraRepository : ICameraRepository
     {
+        private AsyncReaderWriterLock locker;
         private IDictionary<int, Camera> byNumber;
         private IDictionary<string, Camera> byName;
 
@@ -19,44 +23,97 @@ namespace Search.Lib
 
         public CameraRepository()
         {
+            locker = new AsyncReaderWriterLock();
+
             byNumber = new Dictionary<int, Camera>();
             byName = new Dictionary<string, Camera>();
             cameras = new List<Camera>();
         }
 
-        public void Add(Camera camera)
+        public async Task Add(Camera camera)
         {
-            if (byNumber.ContainsKey(camera.Number))
-                throw new ArgumentException("camera number already exists in the repository", nameof(camera));
-            if (byName.ContainsKey(camera.Name))
-                throw new ArgumentException("camera name already exists in the repository", nameof(camera));
+            using (await locker.WriterLockAsync())
+            {
+                if (byNumber.ContainsKey(camera.Number))
+                    throw new ArgumentException("camera number already exists in the repository", nameof(camera));
+                if (byName.ContainsKey(camera.Name))
+                    throw new ArgumentException("camera name already exists in the repository", nameof(camera));
 
-            byNumber.Add(camera.Number, camera);
-            byName.Add(camera.Name, camera);
-            cameras.Add(camera);
+                byNumber.Add(camera.Number, camera);
+                byName.Add(camera.Name, camera);
+                cameras.Add(camera);
+            }
         }
 
-        public void Remove(Camera camera)
+        public async Task Remove(Camera camera)
         {
-            if (!byNumber.ContainsKey(camera.Number))
-                throw new ArgumentException("camera number does not exists in the repository", nameof(camera));
+            using (await locker.WriterLockAsync())
+            {
+                if (!byNumber.ContainsKey(camera.Number))
+                    throw new ArgumentException("camera number does not exists in the repository", nameof(camera));
 
-            if (byNumber[camera.Number] != camera)
-                throw new ArgumentException("camera does not exists in the repository", nameof(camera));
+                if (byNumber[camera.Number] != camera)
+                    throw new ArgumentException("camera does not exists in the repository", nameof(camera));
 
-            byNumber.Remove(camera.Number);
-            byName.Remove(camera.Name);
-            cameras.Remove(camera);
+                byNumber.Remove(camera.Number);
+                byName.Remove(camera.Name);
+                cameras.Remove(camera);
+            }
         }
 
-        public Camera this[int number] => byNumber[number];
-
-        public Camera this[string name] => byName[name];
-
-        public IEnumerable<Camera> Search(string partialName)
+        public Camera this[int number]
         {
-            var compareInfo = CultureInfo.InvariantCulture.CompareInfo;
-            return cameras.Where(camera => compareInfo.IndexOf(camera.Name, partialName, CompareOptions.IgnoreCase) >= 0);
+            get
+            {
+                using (locker.ReaderLock())
+                {
+                    return byNumber[number];
+                }
+            }
+        }
+
+        public Camera this[string name]
+        {
+            get
+            {
+                using (locker.ReaderLock())
+                {
+                    return byName[name];
+                }
+            }
+        }
+
+        public async Task<Camera> Get(int number)
+        {
+            using (await locker.ReaderLockAsync())
+            {
+                return byNumber[number];
+            }
+        }
+
+        public async Task<Camera> Get(string name)
+        {
+            using (await locker.ReaderLockAsync())
+            {
+                return byName[name];
+            }
+        }
+
+        public async Task<IEnumerable<Camera>> Search(string partialName)
+        {
+
+            using (await locker.ReaderLockAsync())
+            {
+                var compareInfo = CultureInfo.InvariantCulture.CompareInfo;
+                return cameras
+                    .Where(camera => compareInfo.IndexOf(camera.Name, partialName, CompareOptions.IgnoreCase) >= 0)
+                    .ToArray();
+            }
+        }
+
+        public ICameraRepositorySnapshot GetSnapshot()
+        {
+            return new CameraRepositorySnapshot(cameras.ToArray());
         }
 
         public static async Task<CameraRepository> FromCsv(string fileName)
@@ -79,7 +136,7 @@ namespace Search.Lib
                 try
                 {
                     var camera = Camera.Parse(csv["Camera"], csv["Latitude"], csv["Longitude"]);
-                    repository.Add(camera);
+                    await repository.Add(camera);
                 }
                 catch (ArgumentException e) when (e.ParamName != "camera")
                 {
@@ -97,6 +154,26 @@ namespace Search.Lib
             }
 
             return repository;
+        }
+
+        class CameraRepositorySnapshot : ICameraRepositorySnapshot
+        {
+            public CameraRepositorySnapshot(IEnumerable<Camera> snapshot)
+            {
+                Snapshot = snapshot;
+            }
+
+            public IEnumerable<Camera> Snapshot { get; }
+
+            public IEnumerator<Camera> GetEnumerator()
+            {
+                return Snapshot.GetEnumerator();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
         }
     }
 }

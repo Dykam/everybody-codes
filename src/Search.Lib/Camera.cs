@@ -7,18 +7,18 @@ namespace Search.Lib
     {
         public int Number { get; }
         public string Name { get; }
-        public (float lat, float lng) Location { get; }
+        public Location Location { get; }
 
         static readonly Regex RawNameParseRegex = new Regex(@"^UTR-CM-(\d{3})\b", RegexOptions.Compiled);
 
-        public Camera(int number, string name, (float lat, float lng) location)
+        public Camera(int number, string name, Location location)
         {
             Number = number;
             Name = name;
             Location = location;
         }
 
-        public void Deconstruct(out int number, out string name, out (float lat, float lng) location)
+        public void Deconstruct(out int number, out string name, out Location location)
         {
             number = Number;
             name = Name;
@@ -43,5 +43,11 @@ namespace Search.Lib
 
             return new Camera(number, rawName, (latitude, longitude));
         }
+
+        public static implicit operator Camera((int number, string name, Location location) camera) =>
+            new Camera(camera.number, camera.name, camera.location);
+
+        public static implicit operator (int number, string name, Location location)(Camera camera) =>
+            (camera.Number, camera.Name, camera.Location);
     }
 }
